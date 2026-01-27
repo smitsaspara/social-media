@@ -11,7 +11,7 @@ import UserImage from "components/UserImage";
 import FlexBetween from "components/FlexBetween";
 import WidgetWrapper from "components/WidgetWrapper";
 import { useDispatch, useSelector } from "react-redux";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setLogin } from "state";
 import API_BASE_URL from "utils/api";
@@ -38,18 +38,18 @@ const UserWidget = ({ userId, picturePath }) => {
     const medium = palette.neutral.medium;
     const main = palette.neutral.main;
   
-    const getUser = async () => {
+    const getUser = useCallback(async () => {
         const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
         setUser(data);
-    };
+    }, [token, userId]);
 
     useEffect(() => {
         getUser();
-    }, []); 
+    }, [getUser]); 
 
     useEffect(() => {
         if (user) {
