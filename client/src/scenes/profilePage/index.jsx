@@ -8,6 +8,7 @@ import FriendListWidget from "scenes/widgets/FriendListWidget";
 import UserPostWidget from "scenes/widgets/UserPostWidget";
 import PostsWidget from "scenes/widgets/PostsWidget";
 import UserWidget from "scenes/widgets/UserWidget";
+import API_BASE_URL from "utils/api";
 
 const ProfilePage = () => {
 
@@ -17,7 +18,7 @@ const ProfilePage = () => {
     const isNonMobileScreens = useMediaQuery("(min-width:1000px)");
 
     const getUser = async () => {
-        const response = await fetch(`http://localhost:3001/users/${userId}`, {
+        const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
         });

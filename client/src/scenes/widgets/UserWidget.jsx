@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setLogin } from "state";
+import API_BASE_URL from "utils/api";
   
 const UserWidget = ({ userId, picturePath }) => {
     
@@ -38,7 +39,7 @@ const UserWidget = ({ userId, picturePath }) => {
     const main = palette.neutral.main;
   
     const getUser = async () => {
-        const response = await fetch(`http://localhost:3001/users/${userId}`, {
+        const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` },
         });
@@ -108,7 +109,7 @@ const UserWidget = ({ userId, picturePath }) => {
             return;
         }
 
-        const response = await fetch(`http://localhost:3001/users/${userId}/profile`, {
+        const response = await fetch(`${API_BASE_URL}/users/${userId}/profile`, {
             method: "PATCH",
             headers: {
                 Authorization: `Bearer ${token}`,

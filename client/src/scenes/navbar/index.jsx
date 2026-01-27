@@ -31,6 +31,7 @@ import { setMode, setLogout } from "state";
 import { useNavigate } from "react-router-dom";
 import FlexBetween from "components/FlexBetween";
 import UserImage from "components/UserImage";
+import API_BASE_URL from "utils/api";
 
 const Navbar = () => {
 
@@ -164,7 +165,7 @@ const Navbar = () => {
 
                                 try {
                                     const response = await fetch(
-                                        `http://localhost:3001/users/search/first-name?firstName=${encodeURIComponent(
+                                        `${API_BASE_URL}/users/search/first-name?firstName=${encodeURIComponent(
                                             nextValue.trim()
                                         )}`,
                                         {

@@ -3,6 +3,7 @@ import { Alert, Box, Button, TextField, Typography, useTheme, useMediaQuery } fr
 import { Formik } from "formik";
 import * as yup from "yup";
 import { useLocation, useNavigate } from "react-router-dom";
+import API_BASE_URL from "utils/api";
 
 const resetSchema = yup.object().shape({
     password: yup.string().min(6, "min 6 characters").required("required"),
@@ -35,7 +36,7 @@ const ResetPasswordPage = () => {
             return;
         }
 
-        const response = await fetch("http://localhost:3001/auth/reset-password", {
+        const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token, password: values.password }),
