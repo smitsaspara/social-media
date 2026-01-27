@@ -67,3 +67,24 @@ export const addRemoveFriend = async (req, res) => {
       res.status(404).json({ message: err.message });
     }
 };
+
+export const searchUsersByFirstName = async (req, res) => {
+  try {
+    const { firstName } = req.query;
+
+    if (!firstName || !firstName.trim()) {
+      return res.status(400).json({ message: "firstName query is required." });
+    }
+
+    const escaped = firstName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const users = await User.find({
+      firstName: { $regex: escaped, $options: "i" },
+    })
+      .select("_id firstName lastName picturePath location occupation")
+      .limit(10);
+
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

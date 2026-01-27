@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { useRef, useState } from "react";
 
 import {
     Box, 
@@ -27,6 +27,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setMode, setLogout } from "state";
 import { useNavigate } from "react-router-dom";
 import FlexBetween from "components/FlexBetween";
+import UserImage from "components/UserImage";
 
 const Navbar = () => {
 
@@ -37,8 +38,15 @@ const Navbar = () => {
     const navigate = useNavigate();
 
     const user = useSelector((state) => state.user);
+    const token = useSelector((state) => state.token);
 
     const isNonMobileScreens = useMediaQuery("(min-width : 1000px)");
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchError, setSearchError] = useState("");
+    const activeRequestRef = useRef(null);
 
     const theme = useTheme();
     const neutralLight = theme.palette.neutral.light;
@@ -69,17 +77,164 @@ const Navbar = () => {
                 </Typography>
 
                 {isNonMobileScreens && (
-                <FlexBetween
-                    backgroundColor={neutralLight}
-                    borderRadius="9px"
-                    gap="3rem"
-                    padding="0.1rem 1.5rem"
-                >
-                    <InputBase placeholder="Search..." />
-                    <IconButton>
-                    <Search />
-                    </IconButton>
-                </FlexBetween>
+                <Box position="relative" width="350px">
+                    <FlexBetween
+                        backgroundColor={neutralLight}
+                        borderRadius="9px"
+                        gap="3rem"
+                        padding="0.1rem 1.5rem"
+                    >
+                        <InputBase
+                            placeholder="Search by first name..."
+                            value={searchTerm}
+                            onChange={async (event) => {
+                                const nextValue = event.target.value;
+                                setSearchTerm(nextValue);
+
+                                if (activeRequestRef.current) {
+                                    activeRequestRef.current.abort();
+                                }
+
+                                if (!nextValue.trim()) {
+                                    setSearchResults([]);
+                                    setIsSearching(false);
+                                    setSearchError("");
+                                    return;
+                                }
+
+                                const controller = new AbortController();
+                                activeRequestRef.current = controller;
+                                setIsSearching(true);
+                                setSearchError("");
+
+                                try {
+                                    const response = await fetch(
+                                        `http://localhost:3001/users/search/first-name?firstName=${encodeURIComponent(
+                                            nextValue.trim()
+                                        )}`,
+                                        {
+                                            method: "GET",
+                                            headers: {
+                                                Authorization: `Bearer ${token}`,
+                                            },
+                                            signal: controller.signal,
+                                        }
+                                    );
+
+                                    if (!response.ok) {
+                                        let message = "Search failed.";
+                                        try {
+                                            const errorData = await response.json();
+                                            message = errorData.message || message;
+                                        } catch (parseError) {
+                                            // Ignore JSON parse errors
+                                        }
+                                        setSearchResults([]);
+                                        setSearchError(message);
+                                        return;
+                                    }
+
+                                    const data = await response.json();
+                                    setSearchResults(data);
+                                    setSearchError("");
+                                } catch (error) {
+                                    if (error.name !== "AbortError") {
+                                        setSearchResults([]);
+                                        setSearchError("Search failed.");
+                                    }
+                                } finally {
+                                    setIsSearching(false);
+                                }
+                            }}
+                        />
+                        <IconButton>
+                            <Search />
+                        </IconButton>
+                    </FlexBetween>
+
+                    {!!searchTerm.trim() && (
+                        <Box
+                            position="absolute"
+                            top="100%"
+                            left="0"
+                            right="0"
+                            mt="0.5rem"
+                            backgroundColor={alt}
+                            borderRadius="0.5rem"
+                            boxShadow={3}
+                            zIndex="10"
+                            maxHeight="300px"
+                            overflow="auto"
+                        >
+                            {isSearching && (
+                                <Box p="0.75rem 1rem">
+                                    <Typography color={dark} fontSize="0.9rem">
+                                        Searching...
+                                    </Typography>
+                                </Box>
+                            )}
+
+                            {!isSearching && searchError && (
+                                <Box p="0.75rem 1rem">
+                                    <Typography color={dark} fontSize="0.9rem">
+                                        {searchError}
+                                    </Typography>
+                                </Box>
+                            )}
+
+                            {!isSearching && !searchError && searchResults.length === 0 && (
+                                <Box p="0.75rem 1rem">
+                                    <Typography color={dark} fontSize="0.9rem">
+                                        No users found.
+                                    </Typography>
+                                </Box>
+                            )}
+
+                            {!isSearching &&
+                                searchResults.map((result) => (
+                                    <FlexBetween
+                                        key={result._id}
+                                        gap="0.75rem"
+                                        padding="0.75rem 1rem"
+                                        sx={{
+                                            cursor: "pointer",
+                                            "&:hover": {
+                                                backgroundColor: neutralLight,
+                                            },
+                                        }}
+                                        onMouseDown={() => {
+                                            navigate(`/profile/${result._id}`);
+                                            navigate(0);
+                                            setSearchTerm("");
+                                            setSearchResults([]);
+                                        }}
+                                    >
+                                        <FlexBetween gap="0.75rem">
+                                            <UserImage
+                                                image={result.picturePath}
+                                                size="40px"
+                                            />
+                                            <Box>
+                                                <Typography
+                                                    color={dark}
+                                                    fontWeight="500"
+                                                >
+                                                    {result.firstName}{" "}
+                                                    {result.lastName}
+                                                </Typography>
+                                                <Typography
+                                                    color={dark}
+                                                    fontSize="0.75rem"
+                                                >
+                                                    {result.occupation || "User"}
+                                                </Typography>
+                                            </Box>
+                                        </FlexBetween>
+                                    </FlexBetween>
+                                ))}
+                        </Box>
+                    )}
+                </Box>
                 )}
             </FlexBetween>
 
