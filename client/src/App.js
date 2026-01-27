@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Router, Navigate, Routes } from "react-router-dom
 import HomePage from "scenes/homePage";
 import LoignPage from "scenes/loginPage";
 import ProfilePage from "scenes/profilePage";
+import ResetPasswordPage from "scenes/resetPasswordPage";
 import { useMemo } from "react";
 import { useSelector } from "react-redux";
 import { CssBaseline, ThemeProvider } from "@mui/material";
@@ -21,6 +22,7 @@ function App() {
         <CssBaseline/>
         <Routes>
           <Route path="/" element = {<LoignPage /> } />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           
           <Route
             path="/home" element={ isAuth ? <HomePage /> : <Navigate to="/" />}

@@ -47,6 +47,15 @@ const UserSchema = new mongoose.Schema(
         viewedProfile: Number,
         
         impressions: Number,
+
+        resetPasswordToken: {
+            type: String,
+            default: "",
+        },
+
+        resetPasswordExpires: {
+            type: Date,
+        },
     },
     {
         timestamps : true

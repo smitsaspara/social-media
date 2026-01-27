@@ -6,6 +6,7 @@ import {
     useMediaQuery,
     Typography,
     useTheme,
+    Alert,
 } from "@mui/material";
 
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -32,6 +33,10 @@ const loginSchema = yup.object().shape({
     password: yup.string().required("required"),
 });
 
+const forgotSchema = yup.object().shape({
+    email: yup.string().email("invalid email").required("required"),
+});
+
 const initialValuesRegister = {
     firstName: "",
     lastName: "",
@@ -47,18 +52,34 @@ const initialValuesLogin = {
     password: "",
 };
 
+const initialValuesForgot = {
+    email: "",
+};
+
 const Form = () => {
 
     const [pageType, setPageType] = useState("login");
+    const [errorMessage, setErrorMessage] = useState("");
+    const [infoMessage, setInfoMessage] = useState("");
+    const [prefilledEmail, setPrefilledEmail] = useState("");
+    const [previewUrl, setPreviewUrl] = useState("");
     const { palette } = useTheme();
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const isNonMobile = useMediaQuery("(min-width:600px)");
     const isLogin = pageType === "login";
     const isRegister = pageType === "register";
+    const isForgot = pageType === "forgot";
+
+    const clearMessages = () => {
+        setErrorMessage("");
+        setInfoMessage("");
+        setPrefilledEmail("");
+        setPreviewUrl("");
+    };
 
     const register = async (values, onSubmitProps) => {
-        // this allows us to send form info with image
+        clearMessages();
         const formData = new FormData();
 
         for (let value in values) {
@@ -75,17 +96,32 @@ const Form = () => {
         }
         );
 
-        const savedUser = await savedUserResponse.json();
+        const data = await savedUserResponse.json();
+        const responseText = String(data.message || data.error || data.errmsg || "");
 
         onSubmitProps.resetForm();
 
-        if (savedUser) {
+        if (savedUserResponse.ok && data._id) {
+            setInfoMessage("Account created successfully. Please log in.");
+            setPrefilledEmail("");
             setPageType("login");
+        } else if (
+            savedUserResponse.status === 409 ||
+            (data.message && data.message.includes("already exists")) ||
+            responseText.includes("E11000") ||
+            responseText.toLowerCase().includes("duplicate key")
+        ) {
+            setInfoMessage("An account with this email already exists. Please log in.");
+            setPrefilledEmail(values.email || "");
+            setPageType("login");
+        } else {
+            setErrorMessage(data.message || data.error || "Registration failed. Please try again.");
         }
     };
 
     const login = async (values, onSubmitProps) => {
-        
+        clearMessages();
+
         const loggedInResponse = await fetch("http://localhost:3001/auth/login",
         {
             method: "POST",
@@ -93,33 +129,63 @@ const Form = () => {
             body: JSON.stringify(values),   
         });
 
-        const loggedIn = await loggedInResponse.json();
-        
+        const data = await loggedInResponse.json();
+
         onSubmitProps.resetForm();
 
-        if (loggedIn) {
-        dispatch(
-            setLogin({
-                user: loggedIn.user,
-                token: loggedIn.token,
-            })
-        );
-
-        navigate("/home");
-
+        if (loggedInResponse.ok && data.token && data.user) {
+            dispatch(
+                setLogin({
+                    user: data.user,
+                    token: data.token,
+                })
+            );
+            navigate("/home");
+        } else {
+            setErrorMessage(data.message || data.msg || "Invalid email or password.");
         }
     };
 
     const handleFormSubmit = async (values, onSubmitProps) => {
         if (isLogin) await login(values, onSubmitProps);
         if (isRegister) await register(values, onSubmitProps);
+        if (isForgot) await requestPasswordReset(values, onSubmitProps);
+    };
+
+    const requestPasswordReset = async (values, onSubmitProps) => {
+        clearMessages();
+
+        const response = await fetch("http://localhost:3001/auth/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: values.email }),
+        });
+
+        const data = await response.json();
+        onSubmitProps.resetForm();
+
+        if (response.ok) {
+            setInfoMessage(data.message || "If an account exists, a reset link has been sent.");
+            if (data.previewUrl) {
+                setPreviewUrl(data.previewUrl);
+            }
+        } else {
+            setErrorMessage(data.message || "Unable to send reset email.");
+        }
     };
 
     return (
         <Formik
+        enableReinitialize
         onSubmit={handleFormSubmit}
-        initialValues={isLogin ? initialValuesLogin : initialValuesRegister}
-        validationSchema={isLogin ? loginSchema : registerSchema}
+        initialValues={
+            isLogin
+                ? { ...initialValuesLogin, email: prefilledEmail || initialValuesLogin.email }
+                : isForgot
+                ? { ...initialValuesForgot, email: prefilledEmail || initialValuesForgot.email }
+                : initialValuesRegister
+        }
+        validationSchema={isLogin ? loginSchema : isForgot ? forgotSchema : registerSchema}
         >
             
         {({
@@ -239,18 +305,40 @@ const Form = () => {
                     sx = {{ gridColumn: "span 4" }}
                 />
 
-                <TextField
-                    label = "Password"
-                    type = "password"
-                    onBlur = {handleBlur}
-                    onChange = {handleChange}
-                    value = {values.password}
-                    name = "password"
-                    error = {Boolean(touched.password) && Boolean(errors.password)}
-                    helperText = {touched.password && errors.password}
-                    sx = {{ gridColumn: "span 4" }}
-                />
+                {!isForgot && (
+                    <TextField
+                        label = "Password"
+                        type = "password"
+                        onBlur = {handleBlur}
+                        onChange = {handleChange}
+                        value = {values.password}
+                        name = "password"
+                        error = {Boolean(touched.password) && Boolean(errors.password)}
+                        helperText = {touched.password && errors.password}
+                        sx = {{ gridColumn: "span 4" }}
+                    />
+                )}
             </Box>
+
+            {/* ERROR / INFO MESSAGES */}
+            {errorMessage && (
+                <Alert severity="error" onClose={() => setErrorMessage("")} sx={{ gridColumn: "span 4" }}>
+                    {errorMessage}
+                </Alert>
+            )}
+            {infoMessage && (
+                <Alert severity="info" onClose={() => setInfoMessage("")} sx={{ gridColumn: "span 4" }}>
+                    {infoMessage}
+                </Alert>
+            )}
+            {previewUrl && (
+                <Alert severity="success" onClose={() => setPreviewUrl("")} sx={{ gridColumn: "span 4" }}>
+                    Preview email link:{" "}
+                    <a href={previewUrl} target="_blank" rel="noreferrer">
+                        {previewUrl}
+                    </a>
+                </Alert>
+            )}
 
             {/* BUTTONS */}
             <Box>
@@ -264,12 +352,37 @@ const Form = () => {
                     "&:hover": { color: palette.primary.main },
                 }}
                 >
-                {isLogin ? "LOGIN" : "REGISTER"}
+                {isLogin ? "LOGIN" : isForgot ? "SEND RESET LINK" : "REGISTER"}
                 </Button>
+                {isLogin && (
+                    <Typography
+                        onClick={() => {
+                            setPageType("forgot");
+                            resetForm();
+                            clearMessages();
+                        }}
+                        sx={{
+                            textDecoration: "underline",
+                            color: palette.primary.main,
+                            "&:hover": {
+                                cursor: "pointer",
+                                color: palette.primary.light,
+                            },
+                            mb: "1rem",
+                        }}
+                    >
+                        Forgot your password?
+                    </Typography>
+                )}
                 <Typography
                 onClick={() => {
-                    setPageType(isLogin ? "register" : "login");
+                    if (isForgot) {
+                        setPageType("login");
+                    } else {
+                        setPageType(isLogin ? "register" : "login");
+                    }
                     resetForm();
+                    clearMessages();
                 }}
                 sx={{
                     textDecoration: "underline",
@@ -280,7 +393,11 @@ const Form = () => {
                     },
                 }}
                 >
-                { isLogin ? "Don't have an account? Sign Up here." : "Already have an account? Login here." }
+                {isForgot
+                    ? "Back to login."
+                    : isLogin
+                    ? "Don't have an account? Sign Up here."
+                    : "Already have an account? Login here."}
                 </Typography>
             </Box>
             </form>
