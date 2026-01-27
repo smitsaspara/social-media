@@ -1,24 +1,38 @@
 import {
     ManageAccountsOutlined,
     EditOutlined,
+    EmailOutlined,
     LocationOnOutlined,
     WorkOutlineOutlined,
 } from "@mui/icons-material";
 
-import { Box, Typography, Divider, useTheme } from "@mui/material";
+import { Box, Button, TextField, Typography, Divider, useTheme } from "@mui/material";
 import UserImage from "components/UserImage";
 import FlexBetween from "components/FlexBetween";
 import WidgetWrapper from "components/WidgetWrapper";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { setLogin } from "state";
   
 const UserWidget = ({ userId, picturePath }) => {
     
     const [user, setUser] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [formValues, setFormValues] = useState({
+        firstName: "",
+        lastName: "",
+        location: "",
+        occupation: "",
+        twitterUrl: "",
+        linkedinUrl: "",
+    });
+    const [formError, setFormError] = useState("");
     const { palette } = useTheme();
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const token = useSelector((state) => state.token);
+    const loggedInUserId = useSelector((state) => state.user?._id);
     const dark = palette.neutral.dark;
     const medium = palette.neutral.medium;
     const main = palette.neutral.main;
@@ -36,6 +50,19 @@ const UserWidget = ({ userId, picturePath }) => {
         getUser();
     }, []); 
 
+    useEffect(() => {
+        if (user) {
+            setFormValues({
+                firstName: user.firstName || "",
+                lastName: user.lastName || "",
+                location: user.location || "",
+                occupation: user.occupation || "",
+                twitterUrl: user.twitterUrl || "",
+                linkedinUrl: user.linkedinUrl || "",
+            });
+        }
+    }, [user]);
+
     if (!user) {
         return null;
     }
@@ -48,7 +75,74 @@ const UserWidget = ({ userId, picturePath }) => {
         viewedProfile,
         impressions,
         friends,
+        email,
+        twitterUrl,
+        linkedinUrl,
     } = user;
+
+    const handleInputChange = (event) => {
+        const { name, value } = event.target;
+        setFormValues((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleSave = async () => {
+        const validateSocialUrl = (value, allowedHosts) => {
+            if (!value) return true;
+            try {
+                const url = new URL(value);
+                if (!["http:", "https:"].includes(url.protocol)) return false;
+                const host = url.hostname.replace(/^www\./, "").toLowerCase();
+                return allowedHosts.includes(host);
+            } catch (error) {
+                return false;
+            }
+        };
+
+        if (
+            !validateSocialUrl(formValues.twitterUrl, ["twitter.com", "x.com"]) ||
+            !validateSocialUrl(formValues.linkedinUrl, ["linkedin.com"])
+        ) {
+            setFormError(
+                "Enter valid Twitter/X and LinkedIn profile URLs, or leave them empty."
+            );
+            return;
+        }
+
+        const response = await fetch(`http://localhost:3001/users/${userId}/profile`, {
+            method: "PATCH",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                firstName: formValues.firstName,
+                lastName: formValues.lastName,
+                location: formValues.location,
+                occupation: formValues.occupation,
+                twitterUrl: formValues.twitterUrl,
+                linkedinUrl: formValues.linkedinUrl,
+            }),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            setUser(data);
+            setIsEditing(false);
+            setFormError("");
+            if (loggedInUserId === userId) {
+                dispatch(setLogin({ user: data, token }));
+            }
+        } else {
+            let message = "Update failed.";
+            try {
+                const errorData = await response.json();
+                message = errorData.message || message;
+            } catch (error) {
+                // Ignore JSON parse errors
+            }
+            setFormError(message);
+        }
+    };
   
     return (
         <WidgetWrapper>
@@ -79,21 +173,72 @@ const UserWidget = ({ userId, picturePath }) => {
                         <Typography color={medium}>{friends.length} friends</Typography>
                     </Box>
                 </FlexBetween>
-                <ManageAccountsOutlined />
+                {loggedInUserId === userId && (
+                    <ManageAccountsOutlined
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => setIsEditing((prev) => !prev)}
+                    />
+                )}
             </FlexBetween>
     
             <Divider />
     
             {/* SECOND ROW */}
             <Box p="1rem 0">
-                <Box display="flex" alignItems="center" gap="1rem" mb="0.5rem">
-                    <LocationOnOutlined fontSize="large" sx={{ color: main }} />
-                    <Typography color={medium}>{location}</Typography>
-                </Box>
-                <Box display="flex" alignItems="center" gap="1rem">
-                    <WorkOutlineOutlined fontSize="large" sx={{ color: main }} />
-                    <Typography color={medium}>{occupation}</Typography>
-                </Box>
+                {isEditing && loggedInUserId === userId ? (
+                    <Box display="flex" flexDirection="column" gap="0.75rem">
+                        <TextField
+                            name="firstName"
+                            label="First name"
+                            value={formValues.firstName}
+                            onChange={handleInputChange}
+                            size="small"
+                        />
+                        <TextField
+                            name="lastName"
+                            label="Last name"
+                            value={formValues.lastName}
+                            onChange={handleInputChange}
+                            size="small"
+                        />
+                        <TextField
+                            name="location"
+                            label="Location"
+                            value={formValues.location}
+                            onChange={handleInputChange}
+                            size="small"
+                        />
+                        <TextField
+                            name="occupation"
+                            label="Occupation"
+                            value={formValues.occupation}
+                            onChange={handleInputChange}
+                            size="small"
+                        />
+                        {!!formError && (
+                            <Typography color="error" fontSize="0.85rem">
+                                {formError}
+                            </Typography>
+                        )}
+                    </Box>
+                ) : (
+                    <>
+                        <Box display="flex" alignItems="center" gap="1rem" mb="0.5rem">
+                            <LocationOnOutlined fontSize="large" sx={{ color: main }} />
+                            <Typography color={medium}>{location}</Typography>
+                        </Box>
+                        <Box display="flex" alignItems="center" gap="1rem">
+                            <WorkOutlineOutlined fontSize="large" sx={{ color: main }} />
+                            <Typography color={medium}>{occupation}</Typography>
+                        </Box>
+                        {loggedInUserId === userId && email && (
+                            <Box display="flex" alignItems="center" gap="1rem" mt="0.5rem">
+                                <EmailOutlined fontSize="large" sx={{ color: main }} />
+                                <Typography color={medium}>{email}</Typography>
+                            </Box>
+                        )}
+                    </>
+                )}
             </Box>
     
             <Divider />
@@ -129,7 +274,29 @@ const UserWidget = ({ userId, picturePath }) => {
                         <Typography color={main} fontWeight="500">
                             Twitter
                         </Typography>
-                        <Typography color={medium}>Social Network</Typography>
+                        {isEditing && loggedInUserId === userId ? (
+                            <TextField
+                                name="twitterUrl"
+                                label="Twitter URL"
+                                value={formValues.twitterUrl}
+                                onChange={handleInputChange}
+                                size="small"
+                            />
+                        ) : (
+                            <Typography color={medium}>
+                                {twitterUrl ? (
+                                    <a
+                                        href={twitterUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        {twitterUrl}
+                                    </a>
+                                ) : (
+                                    "Not provided"
+                                )}
+                            </Typography>
+                        )}
                     </Box>
                     </FlexBetween>
                     <EditOutlined sx={{ color: main }} />
@@ -142,12 +309,59 @@ const UserWidget = ({ userId, picturePath }) => {
                         <Typography color={main} fontWeight="500">
                             Linkedin
                         </Typography>
-                        <Typography color={medium}>Network Platform</Typography>
+                        {isEditing && loggedInUserId === userId ? (
+                            <TextField
+                                name="linkedinUrl"
+                                label="LinkedIn URL"
+                                value={formValues.linkedinUrl}
+                                onChange={handleInputChange}
+                                size="small"
+                            />
+                        ) : (
+                            <Typography color={medium}>
+                                {linkedinUrl ? (
+                                    <a
+                                        href={linkedinUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        {linkedinUrl}
+                                    </a>
+                                ) : (
+                                    "Not provided"
+                                )}
+                            </Typography>
+                        )}
                     </Box>
                     </FlexBetween>
                     <EditOutlined sx={{ color: main }} />
                 </FlexBetween>
             </Box>
+
+            {isEditing && loggedInUserId === userId && (
+                <FlexBetween>
+                    <Button
+                        variant="outlined"
+                        onClick={() => {
+                            setIsEditing(false);
+                            setFormValues({
+                                firstName: user.firstName || "",
+                                lastName: user.lastName || "",
+                                location: user.location || "",
+                                occupation: user.occupation || "",
+                                twitterUrl: user.twitterUrl || "",
+                                linkedinUrl: user.linkedinUrl || "",
+                            });
+                            setFormError("");
+                        }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button variant="contained" onClick={handleSave}>
+                        Save
+                    </Button>
+                </FlexBetween>
+            )}
         </WidgetWrapper>
     );
 };

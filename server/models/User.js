@@ -56,6 +56,14 @@ const UserSchema = new mongoose.Schema(
         resetPasswordExpires: {
             type: Date,
         },
+        twitterUrl: {
+            type: String,
+            default: "",
+        },
+        linkedinUrl: {
+            type: String,
+            default: "",
+        },
     },
     {
         timestamps : true

@@ -10,6 +10,9 @@ const FriendListWidget = ({ userId }) => {
     const { palette } = useTheme();
     const token = useSelector((state) => state.token);
     const friends = useSelector((state) => state.user.friends);
+    const friendList = Array.isArray(friends) ? friends : [];
+    const loggedInUserId = useSelector((state) => state.user?._id);
+    const safeFriendList = friendList.filter((friend) => friend._id !== loggedInUserId);
 
     const getFriends = async () => {
         const response = await fetch(
@@ -39,7 +42,7 @@ const FriendListWidget = ({ userId }) => {
         </Typography>
         
         <Box display="flex" flexDirection="column" gap="1.5rem">
-            {friends.map((friend) => (
+            {safeFriendList.map((friend) => (
             <Friend
                 key={friend._id}
                 friendId={friend._id}

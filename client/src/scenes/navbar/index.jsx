@@ -2,12 +2,15 @@ import { useRef, useState } from "react";
 
 import {
     Box, 
+    Badge,
     IconButton,
     InputBase,
     Typography,
     Select,
     MenuItem,
     FormControl,
+    Menu,
+    Divider,
     useTheme,
     useMediaQuery
 } from "@mui/material";
@@ -19,7 +22,7 @@ import {
     LightMode,
     Notifications,
     Help,
-    Menu,
+    Menu as MenuIcon,
     Close,
 } from "@mui/icons-material";
 
@@ -57,7 +60,59 @@ const Navbar = () => {
     
     const fullName = `${user.firstName} ${user.lastName}`;
 
+    const messageItems = [
+        {
+            id: "welcome",
+            title: "Welcome",
+            body: `Hi ${user.firstName}, welcome back!`,
+            time: "Just now",
+        },
+        {
+            id: "tips",
+            title: "Search tip",
+            body: "Search by first name to open profiles.",
+            time: "1h ago",
+        },
+    ];
+
+    const notificationItems = [
+        {
+            id: "friend",
+            title: "New friend",
+            body: "Someone sent you a friend request.",
+            time: "2h ago",
+        },
+        {
+            id: "post",
+            title: "New post",
+            body: "A friend shared a new post.",
+            time: "1d ago",
+        },
+    ];
+
+    const helpItems = [
+        {
+            id: "account",
+            title: "Account help",
+            body: "Update your profile from the profile page.",
+        },
+        {
+            id: "support",
+            title: "Support",
+            body: "Email support at support@socialmedia.app",
+        },
+    ];
+
+    const [messageAnchorEl, setMessageAnchorEl] = useState(null);
+    const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
+    const [helpAnchorEl, setHelpAnchorEl] = useState(null);
+
+    const isMessageOpen = Boolean(messageAnchorEl);
+    const isNotificationOpen = Boolean(notificationAnchorEl);
+    const isHelpOpen = Boolean(helpAnchorEl);
+
     return(
+        <>
         <FlexBetween padding="1rem 6%" backgroundColor={alt} >
             <FlexBetween gap="1.75rem">
                 
@@ -250,9 +305,19 @@ const Navbar = () => {
                     )}
                 </IconButton>
                 
-                <Message sx={{ fontSize: "25px" }} />
-                <Notifications sx={{ fontSize: "25px" }} />
-                <Help sx={{ fontSize: "25px" }} />
+                <IconButton onClick={(event) => setMessageAnchorEl(event.currentTarget)}>
+                    <Badge badgeContent={messageItems.length} color="primary">
+                        <Message sx={{ fontSize: "25px" }} />
+                    </Badge>
+                </IconButton>
+                <IconButton onClick={(event) => setNotificationAnchorEl(event.currentTarget)}>
+                    <Badge badgeContent={notificationItems.length} color="primary">
+                        <Notifications sx={{ fontSize: "25px" }} />
+                    </Badge>
+                </IconButton>
+                <IconButton onClick={(event) => setHelpAnchorEl(event.currentTarget)}>
+                    <Help sx={{ fontSize: "25px" }} />
+                </IconButton>
                 <FormControl variant="standard" value={fullName}>
                     <Select
                         value={fullName}
@@ -282,7 +347,7 @@ const Navbar = () => {
             <IconButton
                 onClick={() => setIsMobileMenuToggled(!isMobileMenuToggled)}
             >
-                <Menu />
+                <MenuIcon />
             </IconButton>
             )}
 
@@ -328,11 +393,21 @@ const Navbar = () => {
                         )}
                     </IconButton>
 
-                    <Message sx={{ fontSize: "25px" }} />
+                    <IconButton onClick={(event) => setMessageAnchorEl(event.currentTarget)}>
+                        <Badge badgeContent={messageItems.length} color="primary">
+                            <Message sx={{ fontSize: "25px" }} />
+                        </Badge>
+                    </IconButton>
 
-                    <Notifications sx={{ fontSize: "25px" }} />
+                    <IconButton onClick={(event) => setNotificationAnchorEl(event.currentTarget)}>
+                        <Badge badgeContent={notificationItems.length} color="primary">
+                            <Notifications sx={{ fontSize: "25px" }} />
+                        </Badge>
+                    </IconButton>
                     
-                    <Help sx={{ fontSize: "25px" }} />
+                    <IconButton onClick={(event) => setHelpAnchorEl(event.currentTarget)}>
+                        <Help sx={{ fontSize: "25px" }} />
+                    </IconButton>
                     
                     <FormControl variant="standard" value={fullName}>
                     
@@ -366,6 +441,76 @@ const Navbar = () => {
             )}
 
         </FlexBetween>
+
+        <Menu
+            anchorEl={messageAnchorEl}
+            open={isMessageOpen}
+            onClose={() => setMessageAnchorEl(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+            <Box px="1rem" pt="0.75rem" pb="0.5rem">
+                <Typography fontWeight="500">Messages</Typography>
+            </Box>
+            <Divider />
+            {messageItems.map((item) => (
+                <MenuItem key={item.id} onClick={() => setMessageAnchorEl(null)}>
+                    <Box>
+                        <Typography fontWeight="500">{item.title}</Typography>
+                        <Typography fontSize="0.85rem">{item.body}</Typography>
+                        <Typography fontSize="0.75rem" color="text.secondary">
+                            {item.time}
+                        </Typography>
+                    </Box>
+                </MenuItem>
+            ))}
+        </Menu>
+
+        <Menu
+            anchorEl={notificationAnchorEl}
+            open={isNotificationOpen}
+            onClose={() => setNotificationAnchorEl(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+            <Box px="1rem" pt="0.75rem" pb="0.5rem">
+                <Typography fontWeight="500">Notifications</Typography>
+            </Box>
+            <Divider />
+            {notificationItems.map((item) => (
+                <MenuItem key={item.id} onClick={() => setNotificationAnchorEl(null)}>
+                    <Box>
+                        <Typography fontWeight="500">{item.title}</Typography>
+                        <Typography fontSize="0.85rem">{item.body}</Typography>
+                        <Typography fontSize="0.75rem" color="text.secondary">
+                            {item.time}
+                        </Typography>
+                    </Box>
+                </MenuItem>
+            ))}
+        </Menu>
+
+        <Menu
+            anchorEl={helpAnchorEl}
+            open={isHelpOpen}
+            onClose={() => setHelpAnchorEl(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+            <Box px="1rem" pt="0.75rem" pb="0.5rem">
+                <Typography fontWeight="500">Help</Typography>
+            </Box>
+            <Divider />
+            {helpItems.map((item) => (
+                <MenuItem key={item.id} onClick={() => setHelpAnchorEl(null)}>
+                    <Box>
+                        <Typography fontWeight="500">{item.title}</Typography>
+                        <Typography fontSize="0.85rem">{item.body}</Typography>
+                    </Box>
+                </MenuItem>
+            ))}
+        </Menu>
+        </>
     );
 };
 

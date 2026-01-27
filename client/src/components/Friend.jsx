@@ -20,7 +20,9 @@ const Friend = ({ friendId, name, subtitle, userPicturePath }) => {
     const main = palette.neutral.main;
     const medium = palette.neutral.medium;
 
-    const isFriend = friends.find((friend) => friend._id === friendId);
+    const friendList = Array.isArray(friends) ? friends : [];
+    const isSelf = _id === friendId;
+    const isFriend = friendList.find((friend) => friend._id === friendId);
 
     const patchFriend = async () => {
         const response = await fetch(
@@ -70,7 +72,12 @@ const Friend = ({ friendId, name, subtitle, userPicturePath }) => {
         </FlexBetween>
         
         <IconButton
-            onClick={() => patchFriend()}
+            onClick={() => {
+                if (!isSelf) {
+                    patchFriend();
+                }
+            }}
+            disabled={isSelf}
             sx={{ backgroundColor: primaryLight, p: "0.6rem" }}
         >
             {isFriend ? (

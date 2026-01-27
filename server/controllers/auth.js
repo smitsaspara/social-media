@@ -40,7 +40,10 @@ export const register = async (req, res) => {
         });
 
         const savedUser = await newUser.save();
-        res.status(201).json(savedUser);
+        const safeUser = await User.findById(savedUser._id).select(
+            "_id firstName lastName picturePath friends location occupation twitterUrl linkedinUrl viewedProfile impressions"
+        );
+        res.status(201).json(safeUser);
     } catch (err) {
         const isDuplicateKey =
             err.code === 11000 ||
@@ -70,9 +73,12 @@ export const login = async(req, res) => {
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
         
-        delete user.password;
+        const safeUser = user.toObject();
+        delete safeUser.password;
+        delete safeUser.resetPasswordToken;
+        delete safeUser.resetPasswordExpires;
         
-        res.status(200).json({ token, user });
+        res.status(200).json({ token, user: safeUser });
            
     }
     catch(error){
@@ -134,10 +140,13 @@ export const forgotPassword = async (req, res) => {
         const resetUrl = buildResetUrl(rawToken);
         const previewUrl = await sendResetEmail({ to: user.email, resetUrl });
 
-        return res.status(200).json({
+        const response = {
             message: "If an account exists for this email, a reset link has been sent.",
-            previewUrl,
-        });
+        };
+        if (process.env.NODE_ENV !== "production") {
+            response.previewUrl = previewUrl;
+        }
+        return res.status(200).json(response);
     } catch (error) {
         return res.status(500).json({ message: error.message || "Failed to send reset email." });
     }

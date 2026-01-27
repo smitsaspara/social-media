@@ -4,8 +4,12 @@ import User from "../models/User.js";
 /* CREATE */
 export const createPost = async (req, res) => {
   try {
-    const { userId, description, picturePath } = req.body;
+    const { description, picturePath } = req.body;
+    const userId = req.user?.id;
     const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
     const newPost = new Post({
       userId,
       firstName: user.firstName,
@@ -48,8 +52,11 @@ export const getFeedPosts = async (req, res) => {
 export const likePost = async (req, res) => {
     try {
       const { id } = req.params;
-      const { userId } = req.body;
+      const userId = req.user?.id;
       const post = await Post.findById(id);
+      if (!post) {
+        return res.status(404).json({ message: "Post not found." });
+      }
       const isLiked = post.likes.get(userId);
   
       if (isLiked) {
@@ -68,4 +75,35 @@ export const likePost = async (req, res) => {
     } catch (err) {
       res.status(404).json({ message: err.message });
     }
+};
+
+export const addComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+    const userId = req.user?.id;
+
+    const trimmed = (text || "").trim();
+    if (!trimmed) {
+      return res.status(400).json({ message: "Comment text is required." });
+    }
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found." });
+    }
+
+    const user = await User.findById(userId).select("firstName lastName");
+    const name = user ? `${user.firstName} ${user.lastName}` : "User";
+    const commentLabel = `${name}: ${trimmed}`;
+    const updatedPost = await Post.findByIdAndUpdate(
+      id,
+      { $push: { comments: commentLabel } },
+      { new: true }
+    );
+
+    res.status(200).json(updatedPost);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
