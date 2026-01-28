@@ -1,0 +1,4 @@
+Mongo_URL=mongodb+srv://<user>:<password>@<cluster>/<db>?retryWrites=true&w=majority
+JWT_SECRET=change_me
+CLIENT_URL=http://localhost:3000
+REACT_APP_API_URL=http://localhost:3001

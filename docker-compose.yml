@@ -1,0 +1,23 @@
+services:
+  server:
+    build:
+      context: ./server
+    container_name: social-media-server
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      PORT: 3001
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+
+  client:
+    build:
+      context: ./client
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:3001}
+    container_name: social-media-client
+    ports:
+      - "3000:80"
+    depends_on:
+      - server

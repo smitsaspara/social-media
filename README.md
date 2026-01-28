@@ -63,7 +63,7 @@ social-media/
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
-- **Node.js** (v14 or higher)
+- **Node.js** (v18 or higher)
 - **npm** or **yarn**
 - **MongoDB** (local installation or MongoDB Atlas account)
 
@@ -89,22 +89,26 @@ Before you begin, ensure you have the following installed:
 
 ## Environment Variables
 
-### Server Environment Variables
+### Root `.env` (recommended for Docker and local dev)
 
-Create a `.env` file in the `server/` directory with the following variables:
+Create a `.env` file in the project root (see `.env.example`):
 
 ```env
-PORT=6001
 Mongo_URL=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
+CLIENT_URL=http://localhost:3000
+REACT_APP_API_URL=http://localhost:3001
 ```
 
-### Client Environment Variables
+### Server `.env` (optional for non-Docker local dev)
 
-Create a `.env` file in the `client/` directory (if needed):
+Create a `.env` file in the `server/` directory with:
 
 ```env
-REACT_APP_API_URL=http://localhost:6001
+PORT=3001
+Mongo_URL=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret_key
+CLIENT_URL=http://localhost:3000
 ```
 
 ## Running the Application
@@ -121,7 +125,7 @@ REACT_APP_API_URL=http://localhost:6001
    cd server
    node index.js
    ```
-   The server will run on `http://localhost:6001`
+   The server will run on `http://localhost:3001`
 
 3. **Start the frontend development server**
    ```bash
@@ -140,6 +144,29 @@ REACT_APP_API_URL=http://localhost:6001
 
 2. **Serve the production build** (you may need to configure your server to serve the build folder)
 
+### Docker (one-command local run)
+
+1. **Create `.env` at repo root** (see `.env.example`)
+2. **Start containers**
+   ```bash
+   docker compose up --build
+   ```
+   - Frontend: `http://localhost:3000`
+   - Backend: `http://localhost:3001`
+
+### Hosted Demo (Vercel + Render)
+
+1. **Deploy backend to Render**
+   - Root directory: `server`
+   - Build: `npm install`
+   - Start: `node index.js`
+   - Env vars: `Mongo_URL`, `JWT_SECRET`, `CLIENT_URL`
+2. **Deploy frontend to Vercel**
+   - Root directory: `client`
+   - Build: `npm run build`
+   - Output: `build`
+   - Env var: `REACT_APP_API_URL=<your-render-backend-url>`
+
 ## API Endpoints
 
 ### Authentication
@@ -151,11 +178,14 @@ REACT_APP_API_URL=http://localhost:6001
 - `GET /posts/:userId/posts` - Get posts by a specific user (requires authentication)
 - `POST /posts` - Create a new post (requires authentication)
 - `PATCH /posts/:id/like` - Like/unlike a post (requires authentication)
+- `PATCH /posts/:id/comment` - Add a comment to a post (requires authentication)
 
 ### Users
 - `GET /users/:id` - Get user information
 - `GET /users/:id/friends` - Get user's friends
 - `PATCH /users/:id/:friendId` - Add/remove friend
+- `GET /users/search/first-name?firstName=...` - Search users by first name
+- `PATCH /users/:id/profile` - Update profile (self only)
 
 ## Usage
 
